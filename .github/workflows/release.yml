@@ -34,8 +34,13 @@ jobs:
     - name: Build
       run: uv build
 
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+    - name: Publish package to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        uv pip install --system twine
+        uv run twine upload dist/*
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
