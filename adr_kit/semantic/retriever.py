@@ -381,6 +381,8 @@ class SemanticIndex:
         """Generate embeddings for a list of texts."""
         print(f"🧠 Generating embeddings for {len(texts)} chunks...")
         embeddings = self.model.encode(texts, show_progress_bar=True)
+        if not isinstance(embeddings, np.ndarray):
+            embeddings = embeddings.cpu().numpy()
         return embeddings.astype(np.float32)
 
     def _load_existing_index(self) -> bool:
@@ -473,7 +475,10 @@ class SemanticIndex:
             return []
 
         # Generate query embedding
-        query_embedding = self.model.encode([query]).astype(np.float32)
+        query_embedding = self.model.encode([query])
+        if not isinstance(query_embedding, np.ndarray):
+            query_embedding = query_embedding.cpu().numpy()
+        query_embedding = query_embedding.astype(np.float32)
 
         # Compute cosine similarities
         similarities = np.dot(self._embeddings, query_embedding.T).flatten()
