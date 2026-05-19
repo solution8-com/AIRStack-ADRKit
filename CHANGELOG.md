@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-05-19
+
 ### Added
 - `ContractRelations` model — computed at contract build time from ADR frontmatter; provides forward indexes (`depends_on`, `related_to`, `supersedes`), reverse indexes (`required_by`, `related_from`, `superseded_by`), supersession chains (`[oldest → newest]`), and clause lookup tables (`clause_to_adr`, `adr_to_clauses`); attached as `relations` field on `ConstraintsContract` and excluded from the content hash
 - Relationship surfacing in `adr_planning_context` — each ADR in `relevant_adrs` now includes a `relations` dict with its per-ADR relationship context; the response also includes a top-level `relations_summary` with the full global relationship indexes for the contract
@@ -140,7 +142,8 @@ Initial release.
 - Local semantic search via sentence-transformers and FAISS
 - `adr-kit init`, `setup-cursor`, `setup-claude` CLI commands
 
-[Unreleased]: https://github.com/kschlt/adr-kit/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/kschlt/adr-kit/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/kschlt/adr-kit/compare/v0.2.7...v1.3.0
 [0.2.7]: https://github.com/kschlt/adr-kit/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/kschlt/adr-kit/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/kschlt/adr-kit/compare/v0.1.0...v0.2.5
