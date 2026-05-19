@@ -395,10 +395,12 @@ class SemanticIndex:
                     for obj in reader:
                         self._chunks.append(SemanticChunk(**obj))
 
-            # Load embeddings
+            # Load embeddings and cast to float32 for consistency
             if self.embeddings_file.exists():
                 data = np.load(self.embeddings_file)
-                self._embeddings = data["embeddings"].astype(np.float32, copy=False)
+                emb = data["embeddings"]
+                # Keep dtype consistent with generation/search path
+                self._embeddings = emb.astype(np.float32, copy=False)
 
             # Load metadata
             if self.meta_file.exists():
