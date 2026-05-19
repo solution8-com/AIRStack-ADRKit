@@ -259,8 +259,8 @@ class SemanticIndex:
 
         # Initialize components
         self.chunker = SemanticChunker()
-        self._model: SentenceTransformer | None = None
-        self._embeddings: NDArray[Any] | None = None
+        self._model: "SentenceTransformer" | None = None
+        self._embeddings: NDArray[np.float32] | None = None
         self._chunks: list[SemanticChunk] = []
         self._meta: dict[str, Any] = {}
 
@@ -377,13 +377,13 @@ class SemanticIndex:
             "status": "updated",
         }
 
-    def _generate_embeddings(self, texts: list[str]) -> NDArray[Any]:
+    def _generate_embeddings(self, texts: list[str]) -> NDArray[np.float32]:
         """Generate embeddings for a list of texts."""
         print(f"🧠 Generating embeddings for {len(texts)} chunks...")
         embeddings = self.model.encode(texts, show_progress_bar=True)
-        if not isinstance(embeddings, np.ndarray):
-            embeddings = embeddings.cpu().numpy()
-        return embeddings.astype(np.float32)
+        if isinstance(embeddings, np.ndarray):
+            return embeddings.astype(np.float32)
+        return embeddings.detach().cpu().numpy().astype(np.float32)
 
     def _load_existing_index(self) -> bool:
         """Load existing index from disk."""
@@ -395,10 +395,12 @@ class SemanticIndex:
                     for obj in reader:
                         self._chunks.append(SemanticChunk(**obj))
 
-            # Load embeddings
+            # Load embeddings and cast to float32 for consistency
             if self.embeddings_file.exists():
                 data = np.load(self.embeddings_file)
-                self._embeddings = data["embeddings"]
+                emb = data["embeddings"]
+                # Keep dtype consistent with generation/search path
+                self._embeddings = emb.astype(np.float32, copy=False)
 
             # Load metadata
             if self.meta_file.exists():
@@ -475,15 +477,19 @@ class SemanticIndex:
             return []
 
         # Generate query embedding
-        query_embedding = self.model.encode([query])
-        if not isinstance(query_embedding, np.ndarray):
-            query_embedding = query_embedding.cpu().numpy()
-        query_embedding = query_embedding.astype(np.float32)
+        raw_embedding = self.model.encode([query])
+        if isinstance(raw_embedding, np.ndarray):
+            query_embedding_np = raw_embedding.astype(np.float32, copy=False)
+        else:
+            query_embedding_np = raw_embedding.detach().cpu().numpy().astype(np.float32)
+
+        # Flatten to 1D to match shape from _generate_embeddings
+        query_embedding_np = query_embedding_np.flatten()
 
         # Compute cosine similarities
-        similarities = np.dot(self._embeddings, query_embedding.T).flatten()
+        similarities = np.dot(self._embeddings, query_embedding_np).flatten()
         similarities = similarities / (
-            np.linalg.norm(self._embeddings, axis=1) * np.linalg.norm(query_embedding)
+            np.linalg.norm(self._embeddings, axis=1) * np.linalg.norm(query_embedding_np)
         )
 
         # Get top-k similar chunks

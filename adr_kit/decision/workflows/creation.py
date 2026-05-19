@@ -403,18 +403,29 @@ class CreationWorkflow(BaseWorkflow):
         self, proposed_policy: dict[str, Any], contract: Any
     ) -> list[dict[str, Any]]:
         """Detect conflicts between proposed policy and existing policies."""
+        from ...contract.models import ConstraintsContract
+        from ...core.model import PolicyModel
+
         conflicts = []
 
-        # Check if proposed policy contradicts existing constraints
-        for constraint in contract.constraints:
-            if self._policies_conflict(proposed_policy, constraint.policy):
-                conflicts.append(
-                    {
-                        "adr_id": constraint.adr_id,
-                        "conflict_type": "policy_contradiction",
-                        "conflict_detail": f"Proposed policy conflicts with {constraint.adr_id} policy",
-                    }
-                )
+        # Use the contract's built-in conflict checker for consistency
+        if not isinstance(contract, ConstraintsContract):
+            return conflicts
+
+        try:
+            policy = PolicyModel.model_validate(proposed_policy)
+            conflict_msgs = contract.has_conflicts_with_policy(policy, adr_id="(new)")
+            conflicts = [
+                {
+                    "adr_id": "(existing)",
+                    "conflict_type": "policy_contradiction",
+                    "conflict_detail": msg,
+                }
+                for msg in conflict_msgs
+            ]
+        except Exception:
+            # Conflict detection is best-effort
+            pass
 
         return conflicts
 

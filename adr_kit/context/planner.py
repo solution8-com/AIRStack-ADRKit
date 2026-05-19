@@ -189,14 +189,11 @@ class PlanningContext:
             if contract.constraints.imports.prefer:
                 constraints["imports"]["prefer"] = contract.constraints.imports.prefer
 
-        # Boundary constraints
-        if contract.constraints.boundaries:
-            constraints["boundaries"] = {}
-            if contract.constraints.boundaries.rules:
-                constraints["boundaries"]["rules"] = [
-                    {"forbid": rule.forbid}
-                    for rule in contract.constraints.boundaries.rules
-                ]
+        # Architecture constraints (layer boundaries)
+        if contract.constraints.architecture and contract.constraints.architecture.layer_boundaries:
+            constraints["boundaries"] = {
+                "rules": [{"forbid": rule.rule} for rule in contract.constraints.architecture.layer_boundaries]
+            }
 
         # Python constraints
         if contract.constraints.python and contract.constraints.python.disallow_imports:
