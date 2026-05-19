@@ -259,7 +259,7 @@ class SemanticIndex:
 
         # Initialize components
         self.chunker = SemanticChunker()
-        self._model: SentenceTransformer | None = None
+        self._model: "SentenceTransformer" | None = None
         self._embeddings: NDArray[np.float32] | None = None
         self._chunks: list[SemanticChunk] = []
         self._meta: dict[str, Any] = {}
@@ -398,7 +398,7 @@ class SemanticIndex:
             # Load embeddings
             if self.embeddings_file.exists():
                 data = np.load(self.embeddings_file)
-                self._embeddings = data["embeddings"]
+                self._embeddings = data["embeddings"].astype(np.float32, copy=False)
 
             # Load metadata
             if self.meta_file.exists():
@@ -475,16 +475,19 @@ class SemanticIndex:
             return []
 
         # Generate query embedding
-        query_embedding = self.model.encode([query])
-        if isinstance(query_embedding, np.ndarray):
-            query_embedding = query_embedding.astype(np.float32)
+        raw_embedding = self.model.encode([query])
+        if isinstance(raw_embedding, np.ndarray):
+            query_embedding_np = raw_embedding.astype(np.float32, copy=False)
         else:
-            query_embedding = query_embedding.detach().cpu().numpy().astype(np.float32)
+            query_embedding_np = raw_embedding.detach().cpu().numpy().astype(np.float32)
+
+        # Flatten to 1D to match shape from _generate_embeddings
+        query_embedding_np = query_embedding_np.flatten()
 
         # Compute cosine similarities
-        similarities = np.dot(self._embeddings, query_embedding.T).flatten()
+        similarities = np.dot(self._embeddings, query_embedding_np).flatten()
         similarities = similarities / (
-            np.linalg.norm(self._embeddings, axis=1) * np.linalg.norm(query_embedding)
+            np.linalg.norm(self._embeddings, axis=1) * np.linalg.norm(query_embedding_np)
         )
 
         # Get top-k similar chunks
